@@ -41,20 +41,6 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
     protected $listeners = array();
 
     /**
-     * Whether or not to display exceptions related to the 404 condition
-     *
-     * @var bool
-     */
-    protected $displayExceptions = false;
-
-    /**
-     * Whether or not to display the reason for a 404
-     *
-     * @var bool
-     */
-    protected $displayNotFoundReason = false;
-
-    /**
      * The reason for a not-found condition
      *
      * @var false|string
@@ -94,7 +80,8 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
      * encountered, sets the response status code to 404.
      *
      * @param  MvcEvent $e
-     * @throws \Zend\Mvc\Exception\RuntimeException
+     * @throws RuntimeException
+     * @throws ServiceNotFoundException
      * @return void
      */
     public function handleRouteNotFoundError(MvcEvent $e)
@@ -192,13 +179,14 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
      * @param ConsoleAdapter         $console
      * @return string
      */
-    protected function getConsoleBanner(ConsoleAdapter $console, ModuleManagerInterface $moduleManager = null){
+    protected function getConsoleBanner(ConsoleAdapter $console, ModuleManagerInterface $moduleManager = null)
+    {
         /**
          * Loop through all loaded modules and collect banners
          */
         $banners = array();
         if($moduleManager !== null){
-            foreach($moduleManager->getLoadedModules(false) as $name => $module){
+            foreach($moduleManager->getLoadedModules(false) as $module){
                 if(!$module instanceof ConsoleBannerProviderInterface){
                     continue; // this module does not provide a banner
                 }
@@ -224,16 +212,16 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
     /**
      * Build Console usage information by querying currently loaded modules.
      *
-     * @param ModuleManagerInterface $moduleManager
-     * @param string                 $scriptName
      * @param ConsoleAdapter         $console
+     * @param string                 $scriptName
+     * @param ModuleManagerInterface $moduleManager
      * @return string
+     * @throws RuntimeException
      */
     protected function getConsoleUsage(
         ConsoleAdapter $console,
         $scriptName,
-        ModuleManagerInterface $moduleManager = null,
-        RouteInterface $router = null
+        ModuleManagerInterface $moduleManager = null
     ){
         /**
          * Loop through all loaded modules and collect usage info
@@ -325,7 +313,6 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
         // Finish last table
         if($table !== false){
             $result .= $this->renderTable($table, $tableCols,$console->getWidth());
-            $table = false;
         }
 
         return $result;
@@ -339,7 +326,8 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
      * @param $consoleWidth
      * @return string
      */
-    protected function renderTable($data, $cols, $consoleWidth){
+    protected function renderTable($data, $cols, $consoleWidth)
+    {
         $result = '';
         $padding = 2;
 
@@ -390,8 +378,6 @@ class RouteNotFoundStrategy implements ListenerAggregateInterface
             $table->appendRow($row);
         }
 
-        $foo = $table->render();
-        $bar = urlencode(substr($foo,-30));
-        return $foo;
+        return $table->render();
     }
 }
