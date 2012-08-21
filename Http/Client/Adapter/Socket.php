@@ -53,11 +53,14 @@ class Socket implements HttpAdapter, StreamInterface
      * @var array
      */
     protected $config = array(
-        'persistent'    => false,
-        'ssltransport'  => 'ssl',
-        'sslcert'       => null,
-        'sslpassphrase' => null,
-        'sslusecontext' => false
+        'persistent'            => false,
+        'ssltransport'          => 'ssl',
+        'sslcert'               => null,
+        'sslpassphrase'         => null,
+        'sslverifypeer'         => true,
+        'sslcapath'             => null,
+        'sslallowselfsigned'    => false,
+        'sslusecontext'         => false
     );
 
     /**
@@ -182,6 +185,22 @@ class Socket implements HttpAdapter, StreamInterface
         if (! is_resource($this->socket) || ! $this->config['keepalive']) {
             $context = $this->getStreamContext();
             if ($secure || $this->config['sslusecontext']) {
+                if ($this->config['sslverifypeer'] !== null) {
+                    if (! stream_context_set_option($context, 'ssl', 'verify_peer',
+                                                    $this->config['sslverifypeer'])) {
+                        throw new AdapterException\RuntimeException('Unable to set sslverifypeer option');
+                    }
+                    if (! stream_context_set_option($context, 'ssl', 'capath',
+                                                    $this->config['sslcapath'])) {
+                        throw new AdapterException\RuntimeException('Unable to set sslcapath option');
+                    }
+                    if ($this->config['sslallowselfsigned'] !== null) {
+                        if (! stream_context_set_option($context, 'ssl', 'allow_self_signed',
+                                                        $this->config['sslallowselfsigned'])) {
+                            throw new AdapterException\RuntimeException('Unable to set sslallowselfsigned option');
+                        }
+                    }
+                }
                 if ($this->config['sslcert'] !== null) {
                     if (! stream_context_set_option($context, 'ssl', 'local_cert',
                                                     $this->config['sslcert'])) {

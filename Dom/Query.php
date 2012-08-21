@@ -68,7 +68,6 @@ class Query
      * Constructor
      *
      * @param  null|string $document
-     * @return void
      */
     public function __construct($document = null, $encoding = null)
     {
@@ -233,16 +232,23 @@ class Query
 
         $encoding = $this->getEncoding();
         libxml_use_internal_errors(true);
+        libxml_disable_entity_loader(true);
         if (null === $encoding) {
             $domDoc = new DOMDocument('1.0');
         } else {
             $domDoc = new DOMDocument('1.0', $encoding);
         }
-
         $type   = $this->getDocumentType();
         switch ($type) {
             case self::DOC_XML:
                 $success = $domDoc->loadXML($document);
+                foreach ($domDoc->childNodes as $child) {
+                    if ($child->nodeType === XML_DOCUMENT_TYPE_NODE) {
+                        throw new Exception\RuntimeException(
+                            'Invalid XML: Detected use of illegal DOCTYPE'
+                        );
+                    }
+                }
                 break;
             case self::DOC_HTML:
             case self::DOC_XHTML:
@@ -255,6 +261,7 @@ class Query
             $this->documentErrors = $errors;
             libxml_clear_errors();
         }
+        libxml_disable_entity_loader(false);
         libxml_use_internal_errors(false);
 
         if (!$success) {

@@ -20,7 +20,7 @@ use Zend\InputFilter\InputFilterInterface;
 use Zend\InputFilter\InputFilterProviderInterface;
 use Zend\InputFilter\InputProviderInterface;
 use Zend\Stdlib\ArrayUtils;
-use Zend\Stdlib\Hydrator;
+use Zend\Stdlib\Hydrator\HydratorInterface;
 
 /**
  * @category   Zend
@@ -236,6 +236,21 @@ class Form extends Fieldset implements FormInterface
     }
 
     /**
+     * Set the hydrator to use when binding an object to the element
+     *
+     * @param  HydratorInterface $hydrator
+     * @return FieldsetInterface
+     */
+    public function setHydrator(HydratorInterface $hydrator)
+    {
+        if ($this->baseFieldset !== null) {
+            $this->baseFieldset->setHydrator($hydrator);
+        }
+
+        return parent::setHydrator($hydrator);
+    }
+
+    /**
      * Bind values to the bound object
      *
      * @param array $values
@@ -262,7 +277,32 @@ class Form extends Fieldset implements FormInterface
                 break;
         }
 
+        $data = $this->prepareBindData($data, $this->data);
         $this->object = parent::bindValues($data);
+    }
+
+    /**
+     * Parse filtered values and return only posted fields for binding
+     *
+     * @param array $values
+     * @param array $match
+     * @return array
+     */
+    protected function prepareBindData(array $values, array $match)
+    {
+        $data = array();
+        foreach ($values as $name => $value) {
+            if (!array_key_exists($name, $match)) {
+                continue;
+            }
+
+            if (is_array($value)) {
+                $data[$name] = $this->prepareBindData($value, $match[$name]);
+            } else {
+                $data[$name] = $value;
+            }
+        }
+        return $data;
     }
 
     /**
@@ -477,23 +517,29 @@ class Form extends Fieldset implements FormInterface
                 continue;
             }
 
-            if (!isset($data[$key])) {
-                continue;
-            }
-
             $fieldset = $formOrFieldset->byName[$key];
 
             if ($fieldset instanceof Collection) {
-                $values = array();
-                $count = count($data[$key]);
+                if (!isset($data[$key]) && $fieldset->getCount() == 0) {
+                    unset ($validationGroup[$key]);
+                    continue;
+                }
 
-                for ($i = 0 ; $i != $count ; ++$i) {
-                    $values[] = $value;
+                $values = array();
+
+                if (isset($data[$key])) {
+                    $count = count($data[$key]);
+
+                    for ($i = 0 ; $i != $count ; ++$i) {
+                        $values[] = $value;
+                    }
                 }
 
                 $value = $values;
             } else {
-                $this->prepareValidationGroup($fieldset, $data[$key], $validationGroup[$key]);
+                if (isset($data[$key])) {
+                    $this->prepareValidationGroup($fieldset, $data[$key], $validationGroup[$key]);
+                }
             }
         }
     }
@@ -519,7 +565,16 @@ class Form extends Fieldset implements FormInterface
     public function getInputFilter()
     {
         if ($this->object instanceof InputFilterAwareInterface) {
-            $this->filter = $this->object->getInputFilter();
+            if (null == $this->baseFieldset) {
+                $this->filter = $this->object->getInputFilter();
+            } else {
+                $name = $this->baseFieldset->getName();
+                if (!$this->filter instanceof InputFilterInterface || !$this->filter->has($name)) {
+                    $filter = new InputFilter();
+                    $filter->add($this->object->getInputFilter(), $name);
+                    $this->filter = $filter;
+                }
+            }
         }
 
         if ($this->filter instanceof InputFilterInterface && $this->useInputFilterDefaults()) {
@@ -581,9 +636,13 @@ class Form extends Fieldset implements FormInterface
 
             if (!$fieldset instanceof InputFilterProviderInterface) {
                 if (!$inputFilter->has($name)) {
-                    // Add a new empty input filter if it does not exist, so that elements of nested fieldsets can be
-                    // recursively added
-                    $inputFilter->add(new InputFilter(), $name);
+                    // Add a new empty input filter if it does not exist (or the fieldset's object input filter),
+                    // so that elements of nested fieldsets can be recursively added
+                    if ($fieldset->getObject() instanceof InputFilterAwareInterface) {
+                        $inputFilter->add($fieldset->getObject()->getInputFilter(), $name);
+                    } else {
+                        $inputFilter->add(new InputFilter(), $name);
+                    }
                 }
 
                 $fieldsetFilter = $inputFilter->get($name);

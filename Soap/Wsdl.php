@@ -89,13 +89,21 @@ class Wsdl
                     xmlns:xsd='http://www.w3.org/2001/XMLSchema'
                     xmlns:soap-enc='http://schemas.xmlsoap.org/soap/encoding/'
                     xmlns:wsdl='http://schemas.xmlsoap.org/wsdl/'></definitions>";
+        libxml_disable_entity_loader(true);
         $this->dom = new DOMDocument();
         if (!$this->dom->loadXML($wsdl)) {
             throw new Exception\RuntimeException('Unable to create DomDocument');
         } else {
+            foreach ($this->dom->childNodes as $child) {
+                if ($child->nodeType === XML_DOCUMENT_TYPE_NODE) {
+                    throw new Exception\RuntimeException(
+                        'Invalid XML: Detected use of illegal DOCTYPE'
+                    );
+                }
+            }
             $this->wsdl = $this->dom->documentElement;
         }
-
+        libxml_disable_entity_loader(false);
         $this->setComplexTypeStrategy($strategy ?: new Wsdl\ComplexTypeStrategy\DefaultComplexType);
     }
 
@@ -121,7 +129,7 @@ class Wsdl
      * Set a new uri for this WSDL
      *
      * @param  string|Uri $uri
-     * @return \Zend\Server\Wsdl
+     * @return \Zend\Soap\Wsdl
      */
     public function setUri($uri)
     {
@@ -131,12 +139,14 @@ class Wsdl
         $oldUri = $this->uri;
         $this->uri = $uri;
 
-        if($this->dom !== null) {
+        if ($this->dom !== null) {
             // @todo: This is the worst hack ever, but its needed due to design and non BC issues of WSDL generation
             $xml = $this->dom->saveXML();
             $xml = str_replace($oldUri, $uri, $xml);
+            libxml_disable_entity_loader(true);
             $this->dom = new DOMDocument();
             $this->dom->loadXML($xml);
+            libxml_disable_entity_loader(false);
         }
 
         return $this;
@@ -415,7 +425,7 @@ class Wsdl
         $doc_cdata = $this->dom->createTextNode(str_replace(array("\r\n", "\r"), "\n", $documentation));
         $doc->appendChild($doc_cdata);
 
-        if($node->hasChildNodes()) {
+        if ($node->hasChildNodes()) {
             $node->insertBefore($doc, $node->firstChild);
         } else {
             $node->appendChild($doc);
@@ -449,7 +459,7 @@ class Wsdl
      */
     public function addType($type, $wsdlType)
     {
-        if(!isset($this->includedTypes[$type])) {
+        if (!isset($this->includedTypes[$type])) {
             $this->includedTypes[$type] = $wsdlType;
         }
         return $this;
@@ -472,7 +482,7 @@ class Wsdl
      */
     public function getSchema()
     {
-        if($this->schema == null) {
+        if ($this->schema == null) {
             $this->addSchemaTypeSection();
         }
 

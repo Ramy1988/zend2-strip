@@ -63,7 +63,7 @@ abstract class AbstractTableGateway implements TableGatewayInterface
     protected $resultSetPrototype = null;
 
     /**
-     * @var Sql\Sql
+     * @var Sql
      */
     protected $sql = null;
 
@@ -198,7 +198,7 @@ abstract class AbstractTableGateway implements TableGatewayInterface
     }
 
     /**
-     * @param Sql\Select $select
+     * @param Select $select
      * @return null|ResultSetInterface
      * @throws \RuntimeException
      */
@@ -314,7 +314,9 @@ abstract class AbstractTableGateway implements TableGatewayInterface
         $sql = $this->sql;
         $update = $sql->update();
         $update->set($set);
-        $update->where($where);
+        if ($where !== null) {
+            $update->where($where);
+        }
         return $this->executeUpdate($update);
     }
 
@@ -445,7 +447,8 @@ abstract class AbstractTableGateway implements TableGatewayInterface
     }
 
     /**
-     * @param $property
+     * @param string $property
+     * @param mixed $value
      * @return mixed
      * @throws Exception\InvalidArgumentException
      */

@@ -16,7 +16,7 @@ use Traversable;
 use Zend\Http\Request as HttpRequest;
 use Zend\Stdlib\ArrayUtils;
 use Zend\Uri;
-use Zend\Version;
+use Zend\Version\Version;
 
 /**
  * @category   Zend
@@ -698,7 +698,7 @@ class Subscriber
             );
         }
         $params['hub.verify'] = array();
-        foreach($vmodes as $vmode) {
+        foreach ($vmodes as $vmode) {
             $params['hub.verify'][] = $vmode;
         }
 

@@ -269,14 +269,24 @@ class Reader
     public static function importString($string)
     {
         $libxml_errflag = libxml_use_internal_errors(true);
+        $oldValue = libxml_disable_entity_loader(true);
         $dom = new DOMDocument;
-        $status = $dom->loadXML($string);
+        $status = $dom->loadXML(trim($string));
+        foreach ($dom->childNodes as $child) {
+            if ($child->nodeType === XML_DOCUMENT_TYPE_NODE) {
+                throw new Exception\InvalidArgumentException(
+                    'Invalid XML: Detected use of illegal DOCTYPE'
+                );
+            }
+        }
+        libxml_disable_entity_loader($oldValue);
         libxml_use_internal_errors($libxml_errflag);
 
         if (!$status) {
             // Build error message
             $error = libxml_get_last_error();
             if ($error && $error->message) {
+                $error->message = trim($error->message);
                 $errormsg = "DOMDocument cannot parse XML: {$error->message}";
             } else {
                 $errormsg = "DOMDocument cannot parse XML: Please check the XML document's validity";
@@ -296,7 +306,7 @@ class Reader
             $reader = new Feed\Atom($dom, $type);
         } else {
             throw new Exception\RuntimeException('The URI used does not point to a '
-            . 'valid Atom, RSS or RDF feed that Zend_Feed_Reader can parse.');
+            . 'valid Atom, RSS or RDF feed that Zend\Feed\Reader can parse.');
         }
         return $reader;
     }
@@ -336,13 +346,16 @@ class Reader
         }
         $responseHtml = $response->getBody();
         $libxml_errflag = libxml_use_internal_errors(true);
+        $oldValue = libxml_disable_entity_loader(true);
         $dom = new DOMDocument;
-        $status = $dom->loadHTML($responseHtml);
+        $status = $dom->loadHTML(trim($responseHtml));
+        libxml_disable_entity_loader($oldValue);
         libxml_use_internal_errors($libxml_errflag);
         if (!$status) {
             // Build error message
             $error = libxml_get_last_error();
             if ($error && $error->message) {
+                $error->message = trim($error->message);
                 $errormsg = "DOMDocument cannot parse HTML: {$error->message}";
             } else {
                 $errormsg = "DOMDocument cannot parse HTML: Please check the XML document's validity";
@@ -366,13 +379,22 @@ class Reader
     {
         if ($feed instanceof Feed\AbstractFeed) {
             $dom = $feed->getDomDocument();
-        } elseif($feed instanceof DOMDocument) {
+        } elseif ($feed instanceof DOMDocument) {
             $dom = $feed;
-        } elseif(is_string($feed) && !empty($feed)) {
+        } elseif (is_string($feed) && !empty($feed)) {
             ErrorHandler::start(E_NOTICE|E_WARNING);
             ini_set('track_errors', 1);
+            $oldValue = libxml_disable_entity_loader(true);
             $dom = new DOMDocument;
             $status = $dom->loadXML($feed);
+            foreach ($dom->childNodes as $child) {
+                if ($child->nodeType === XML_DOCUMENT_TYPE_NODE) {
+                    throw new Exception\InvalidArgumentException(
+                        'Invalid XML: Detected use of illegal DOCTYPE'
+                    );
+                }
+            }
+            libxml_disable_entity_loader($oldValue);
             ini_restore('track_errors');
             ErrorHandler::stop();
             if (!$status) {
@@ -396,7 +418,7 @@ class Reader
             $version = $xpath->evaluate('string(/rss/@version)');
 
             if (strlen($version) > 0) {
-                switch($version) {
+                switch ($version) {
                     case '2.0':
                         $type = self::TYPE_RSS_20;
                         break;

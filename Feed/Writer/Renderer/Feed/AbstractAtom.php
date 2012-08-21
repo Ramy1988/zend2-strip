@@ -15,6 +15,7 @@ use DOMDocument;
 use DOMElement;
 use Zend\Feed\Writer;
 use Zend\Feed\Writer\Renderer;
+use Zend\Version\Version;
 
 /**
 * @category Zend
@@ -26,7 +27,6 @@ class AbstractAtom extends Renderer\AbstractRenderer
      * Constructor
      *
      * @param  Zend_Feed_Writer_Feed $container
-     * @return void
      */
     public function __construct ($container)
     {
@@ -58,7 +58,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setTitle(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getTitle()) {
+        if (!$this->getDataContainer()->getTitle()) {
             $message = 'Atom 1.0 feed elements MUST contain exactly one'
             . ' atom:title element but a title has not been set';
             $exception = new Writer\Exception\InvalidArgumentException($message);
@@ -86,7 +86,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setDescription(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getDescription()) {
+        if (!$this->getDataContainer()->getDescription()) {
             return;
         }
         $subtitle = $dom->createElement('subtitle');
@@ -106,7 +106,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setDateModified(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getDateModified()) {
+        if (!$this->getDataContainer()->getDateModified()) {
             $message = 'Atom 1.0 feed elements MUST contain exactly one'
             . ' atom:updated element but a modification date has not been set';
             $exception = new Writer\Exception\InvalidArgumentException($message);
@@ -135,9 +135,9 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setGenerator(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getGenerator()) {
+        if (!$this->getDataContainer()->getGenerator()) {
             $this->getDataContainer()->setGenerator('Zend_Feed_Writer',
-                \Zend\Version::VERSION, 'http://framework.zend.com');
+                Version::VERSION, 'http://framework.zend.com');
         }
 
         $gdata = $this->getDataContainer()->getGenerator();
@@ -162,7 +162,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setLink(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getLink()) {
+        if (!$this->getDataContainer()->getLink()) {
             return;
         }
         $link = $dom->createElement('link');
@@ -183,7 +183,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
     protected function _setFeedLinks(DOMDocument $dom, DOMElement $root)
     {
         $flinks = $this->getDataContainer()->getFeedLinks();
-        if(!$flinks || !array_key_exists('atom', $flinks)) {
+        if (!$flinks || !array_key_exists('atom', $flinks)) {
             $message = 'Atom 1.0 feed elements SHOULD contain one atom:link '
             . 'element with a rel attribute value of "self".  This is the '
             . 'preferred URI for retrieving Atom Feed Documents representing '
@@ -257,7 +257,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setId(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getId()
+        if (!$this->getDataContainer()->getId()
         && !$this->getDataContainer()->getLink()) {
             $message = 'Atom 1.0 feed elements MUST contain exactly one '
             . 'atom:id element, or as an alternative, we can use the same '
@@ -329,10 +329,10 @@ class AbstractAtom extends Renderer\AbstractRenderer
      */
     protected function _setDateCreated(DOMDocument $dom, DOMElement $root)
     {
-        if(!$this->getDataContainer()->getDateCreated()) {
+        if (!$this->getDataContainer()->getDateCreated()) {
             return;
         }
-        if(!$this->getDataContainer()->getDateModified()) {
+        if (!$this->getDataContainer()->getDateModified()) {
             $this->getDataContainer()->setDateModified(
                 $this->getDataContainer()->getDateCreated()
             );
@@ -377,7 +377,7 @@ class AbstractAtom extends Renderer\AbstractRenderer
     }
 
     /**
-     * Set feed cateories
+     * Set feed categories
      *
      * @param  DOMDocument $dom
      * @param  DOMElement $root
